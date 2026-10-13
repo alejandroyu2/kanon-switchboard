@@ -25,21 +25,17 @@ struct MenuBarLabel: View {
 
     var body: some View {
         let title = shows.text(of: model.menuBar)
+        let enabled = [buenosAires, mexicoCity, saoPaulo, newYork]
+        let clocks = WorldClock.cities.enumerated().filter { enabled[$0.offset] }
+            .map { "\($0.element.flag) \($0.element.time(at: clockDate))" }
+        let barTitle = ([title] + clocks).filter { !$0.isEmpty }.joined(separator: "  ")
         // A mark as well as words: on a crowded menu bar macOS drops the widest items
         // first, and an item that is only text is the widest thing up there. A Label would
         // render as the icon alone, so both are placed by hand.
         HStack(spacing: 4) {
             Image(nsImage: MenuBarMark.image)
-            if !title.isEmpty {
-                Text(title).monospacedDigit()
-            }
-            Group {
-                let enabled = [buenosAires, mexicoCity, saoPaulo, newYork]
-                let clocks = WorldClock.cities.enumerated().filter { enabled[$0.offset] }
-                    .map { "\($0.element.flag) \($0.element.time(at: clockDate))" }
-                if !clocks.isEmpty {
-                    Text(clocks.joined(separator: "  ")).monospacedDigit()
-                }
+            if !barTitle.isEmpty {
+                Text(barTitle).monospacedDigit()
             }
         }
         .onReceive(clockTimer) { clockDate = $0 }
