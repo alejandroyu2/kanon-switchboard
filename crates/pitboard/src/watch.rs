@@ -37,7 +37,11 @@ const READ_EVERY: i64 = 300;
 /// asked for usage; a decision under the lock may ask Anthropic whose login Claude Code has
 /// stored, as a switch does.
 pub fn once(pitboard: &Pitboard, threshold: Threshold) -> Report {
-    said(pitboard.auto_switch(threshold), threshold, false)
+    said(
+        pitboard.auto_switch(threshold, pitboard_core::autoswitch::Strategy::Capacity),
+        threshold,
+        false,
+    )
 }
 
 /// Watches until it is stopped, saying the account it watches whenever its last line said
@@ -80,8 +84,8 @@ pub fn run(pitboard: &Pitboard, threshold: Threshold, as_json: bool) -> ExitCode
             (seen, decided_at) = (written, now);
             let outcome = decided(
                 refusals.waits(instant(now)),
-                || pitboard.auto_look(threshold),
-                || pitboard.auto_switch(threshold),
+                || pitboard.auto_look(threshold, pitboard_core::autoswitch::Strategy::Capacity),
+                || pitboard.auto_switch(threshold, pitboard_core::autoswitch::Strategy::Capacity),
             );
             if let Some(outcome) = outcome {
                 match &outcome {

@@ -11,7 +11,7 @@
 
 use super::{Settled, Switched, identify, switch_from};
 use crate::audit;
-use crate::autoswitch::{self, Auto, Blind, Judged, Ledger, Threshold};
+use crate::autoswitch::{self, Auto, Blind, Judged, Ledger, Strategy, Threshold};
 use crate::error::{Error, Result};
 use crate::provider::ProviderId;
 use crate::service::Warning;
@@ -35,6 +35,7 @@ use crate::service::Warning;
 pub(crate) fn automatically(
     settled: Settled,
     threshold: Threshold,
+    strategy: Strategy,
 ) -> Result<(Auto, Vec<Warning>)> {
     let Settled {
         _exclusive,
@@ -89,7 +90,7 @@ pub(crate) fn automatically(
     // Said where nothing is switched; a switch says it with its own.
     let lost: Vec<Warning> = outgoing.lock_warning(which).into_iter().collect();
     let judged = match autoswitch::watched(&state, Some(&outgoing.owner)) {
-        Ok(account) => autoswitch::judge(ctx, &state, account, &ledger, threshold, now),
+        Ok(account) => autoswitch::judge(ctx, &state, account, &ledger, threshold, strategy, now),
         Err(why) => return Ok((Auto::NotWatching { why }, lost)),
     };
     let plan = match judged {
@@ -152,7 +153,15 @@ pub(crate) fn automatically(
             }
             let error = stopped(&to, error);
             let judged = decided_from.get(&plan.from).map(|account| {
-                autoswitch::judge(ctx, &decided_from, account, &ledger, threshold, now)
+                autoswitch::judge(
+                    ctx,
+                    &decided_from,
+                    account,
+                    &ledger,
+                    threshold,
+                    strategy,
+                    now,
+                )
             });
             let spent = match judged {
                 Some(Judged::Hold(hold)) => ledger.say(&hold, now).then_some(hold),
@@ -264,13 +273,19 @@ mod tests {
     }
 
     fn auto(m: &Machine) -> crate::service::Changing<Auto> {
-        Pitboard::new(m.ctx.clone()).auto_switch(Threshold::DEFAULT)
+        Pitboard::new(m.ctx.clone())
+            .auto_switch(Threshold::DEFAULT, crate::autoswitch::Strategy::Capacity)
     }
 
     /// What the look at the files alone comes to, where it ends there and takes no lock.
     fn stands(m: &Machine) -> Auto {
         let state = state::load(&m.ctx).expect("state");
-        match crate::autoswitch::look(&m.ctx, &state, Threshold::DEFAULT) {
+        match crate::autoswitch::look(
+            &m.ctx,
+            &state,
+            Threshold::DEFAULT,
+            crate::autoswitch::Strategy::Capacity,
+        ) {
             Look::Stands(stands) => *stands,
             Look::Act => panic!("the look goes on to the lock"),
         }
@@ -663,7 +678,12 @@ mod tests {
         clock.advance(1);
         let state = state::load(&m.ctx).expect("state");
         assert!(matches!(
-            crate::autoswitch::look(&m.ctx, &state, Threshold::DEFAULT),
+            crate::autoswitch::look(
+                &m.ctx,
+                &state,
+                Threshold::DEFAULT,
+                crate::autoswitch::Strategy::Capacity
+            ),
             Look::Act
         ));
         let looked = auto(&m).expect("a look").value;
@@ -699,7 +719,12 @@ mod tests {
         let (m, _) = nearly_out("auto-twice", 96.0);
         let state = state::load(&m.ctx).expect("state");
         for _ in 0..2 {
-            let looked = crate::autoswitch::look(&m.ctx, &state, Threshold::DEFAULT);
+            let looked = crate::autoswitch::look(
+                &m.ctx,
+                &state,
+                Threshold::DEFAULT,
+                crate::autoswitch::Strategy::Capacity,
+            );
             assert!(matches!(looked, Look::Act), "{looked:?}");
         }
         let rows = crate::status::gather_offline(&m.ctx, &state).rows;
@@ -709,6 +734,7 @@ mod tests {
             &rows,
             &Ledger::default(),
             Threshold::DEFAULT,
+            crate::autoswitch::Strategy::Capacity,
             NOW,
         ) else {
             panic!("a switch decided");
@@ -720,9 +746,13 @@ mod tests {
                 .expect("settled")
                 .0;
             came_to.push(
-                automatically(settled, Threshold::DEFAULT)
-                    .expect("no failure")
-                    .0,
+                automatically(
+                    settled,
+                    Threshold::DEFAULT,
+                    crate::autoswitch::Strategy::Capacity,
+                )
+                .expect("no failure")
+                .0,
             );
         }
         assert!(
@@ -874,6 +904,7 @@ mod tests {
             &rows,
             &Ledger::default(),
             Threshold::DEFAULT,
+            crate::autoswitch::Strategy::Capacity,
             NOW,
         ) else {
             panic!("a switch decided");
@@ -1167,7 +1198,14 @@ mod tests {
             crate::fault::killing("switch.park_recorded", || switch(settled, &m.key("there")));
         assert_eq!(died.unwrap_err(), "switch.park_recorded");
         let state = state::load(&m.ctx).expect("state");
-        let look = || crate::autoswitch::look(&m.ctx, &state, Threshold::DEFAULT);
+        let look = || {
+            crate::autoswitch::look(
+                &m.ctx,
+                &state,
+                Threshold::DEFAULT,
+                crate::autoswitch::Strategy::Capacity,
+            )
+        };
         let lock = m.ctx_home().join(".pitboard/state.lock");
 
         let another_run = std::thread::scope(|scope| {

@@ -904,7 +904,10 @@ fn turning_it_on_is_kept_and_looks_at_once() {
                     ..Preferences::default()
                 }
             },
-            Job::AutoLook { at: 90 },
+            Job::AutoLook {
+                at: 90,
+                strategy: crate::AutoSwitchStrategy::Capacity
+            },
         ]
     );
     let shown = model.shown().machine.auto_switch;

@@ -174,6 +174,28 @@ pub struct EarlierPreferences {
     pub second_account_nudge_hidden: bool,
 }
 
+/// How automatic Claude Code switching chooses the next account.
+#[derive(
+    Debug, Default, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, uniffi::Enum,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum AutoSwitchStrategy {
+    #[default]
+    Capacity,
+    Sequential,
+    Balanced,
+}
+
+impl From<AutoSwitchStrategy> for pitboard_core::autoswitch::Strategy {
+    fn from(value: AutoSwitchStrategy) -> Self {
+        match value {
+            AutoSwitchStrategy::Capacity => Self::Capacity,
+            AutoSwitchStrategy::Sequential => Self::Sequential,
+            AutoSwitchStrategy::Balanced => Self::Balanced,
+        }
+    }
+}
+
 /// Something the person or the system asked the model for.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Enum)]
 pub enum Intent {
@@ -323,6 +345,8 @@ pub enum Intent {
     /// as `MachineShown::auto_switch` says by `enabled`. Turned on, or at another share, the
     /// core looks at once whether to switch.
     SetAutoSwitch { on: bool, at: u8 },
+    /// Choose how automatic Claude Code switching selects the next eligible account.
+    SetAutoSwitchStrategy { strategy: AutoSwitchStrategy },
     /// Warm up the account `qualified` names from now on, or stop: its own menu's **Warm Up
     /// Automatically**, or its row under the settings' warm-up. Kept by the core in Pitboard's
     /// directory, which the command line reads too. Turned on, an account due is warmed up at

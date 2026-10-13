@@ -17,6 +17,16 @@ struct LimitsSettings: View {
                 )
                 .accessibilityIdentifier("settings.autoSwitch")
                 .disabled(!auto.enabled)
+                Picker("Account order", selection: Binding(
+                    get: { auto.strategy },
+                    set: { model.send(.setAutoSwitchStrategy(strategy: $0)) }
+                )) {
+                    Text("Use available capacity").tag(AutoSwitchStrategy.capacity)
+                    Text("Fill one, then the next").tag(AutoSwitchStrategy.sequential)
+                    Text("Balance usage").tag(AutoSwitchStrategy.balanced)
+                }
+                .accessibilityIdentifier("settings.autoSwitchStrategy")
+                .disabled(!auto.enabled || !auto.on)
                 Stepper(
                     auto.atLabel,
                     value: Binding(

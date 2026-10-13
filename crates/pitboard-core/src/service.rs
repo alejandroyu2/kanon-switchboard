@@ -818,12 +818,18 @@ impl Pitboard {
     /// `auto-switch` of `claude`.
     ///
     /// [`auto_look`]: Pitboard::auto_look
-    pub fn auto_switch(&self, threshold: Threshold) -> Changing<Auto> {
+    pub fn auto_switch(
+        &self,
+        threshold: Threshold,
+        strategy: crate::autoswitch::Strategy,
+    ) -> Changing<Auto> {
         let permit = self.permitted()?;
-        let looked = self.auto_look(threshold).map_err(|error| Failed {
-            error,
-            warnings: Vec::new(),
-        })?;
+        let looked = self
+            .auto_look(threshold, strategy)
+            .map_err(|error| Failed {
+                error,
+                warnings: Vec::new(),
+            })?;
         if let Look::Stands(value) = looked {
             return Ok(Done {
                 value: *value,
@@ -832,7 +838,7 @@ impl Pitboard {
         }
         let tool = ProviderId::Claude;
         let (settled, mut warnings) = self.settled_for(permit, "auto-switch", "", Some(tool))?;
-        match switch::automatically(settled, threshold) {
+        match switch::automatically(settled, threshold, strategy) {
             Ok((value, more)) => {
                 warnings.extend(more);
                 Ok(Done { value, warnings })
@@ -851,9 +857,15 @@ impl Pitboard {
     /// say, which waits for that run.
     ///
     /// [`auto_switch`]: Pitboard::auto_switch
-    pub fn auto_look(&self, threshold: Threshold) -> Result<Look> {
+    pub fn auto_look(
+        &self,
+        threshold: Threshold,
+        strategy: crate::autoswitch::Strategy,
+    ) -> Result<Look> {
         let state = state::load(&self.ctx)?;
-        Ok(crate::autoswitch::look(&self.ctx, &state, threshold))
+        Ok(crate::autoswitch::look(
+            &self.ctx, &state, threshold, strategy,
+        ))
     }
 
     /// Which account somebody meant, as the key the engine looks accounts up by.
@@ -2923,7 +2935,11 @@ mod tests {
         }),
         ("uninstall", |p, _| p.uninstall().err()),
         ("auto_switch", |p, _| {
-            p.auto_switch(crate::autoswitch::Threshold::DEFAULT).err()
+            p.auto_switch(
+                crate::autoswitch::Threshold::DEFAULT,
+                crate::autoswitch::Strategy::Capacity,
+            )
+            .err()
         }),
     ];
 

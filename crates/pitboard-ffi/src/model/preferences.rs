@@ -3,7 +3,7 @@
 //! anybody anything, and whether it switches Claude Code by itself, and at what share. The macOS app kept them in UserDefaults, and hands them over once,
 //! as `AppLaunch::earlier_preferences`: where the file is there, it wins.
 
-use super::EarlierPreferences;
+use super::{AutoSwitchStrategy, EarlierPreferences};
 use pitboard_core::autoswitch::Threshold;
 use pitboard_core::provider::ProviderId;
 use serde::{Deserialize, Serialize};
@@ -31,6 +31,13 @@ pub(crate) struct Preferences {
     /// would write leaves the rest of the file readable, and is taken as the nearest share.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) auto_switch_at: Option<i64>,
+    /// How the next Claude Code account is selected. Missing means Pitboard's original rule.
+    #[serde(default, skip_serializing_if = "is_capacity")]
+    pub(crate) auto_switch_strategy: AutoSwitchStrategy,
+}
+
+fn is_capacity(strategy: &AutoSwitchStrategy) -> bool {
+    *strategy == AutoSwitchStrategy::Capacity
 }
 
 impl Preferences {

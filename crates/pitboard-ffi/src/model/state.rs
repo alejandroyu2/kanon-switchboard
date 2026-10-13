@@ -36,6 +36,7 @@
 //! A test hands `apply` answers in whatever order it likes, which is how the interleavings
 //! the Swift model's tests reached with gates are reached here without a thread.
 
+use super::AutoSwitchStrategy;
 use super::advice::{Advice, Told, rename_told};
 use super::machine::{LOG_LIMIT, MachineState, Scheduled};
 use super::preferences::Preferences;
@@ -172,12 +173,18 @@ pub(crate) enum Job {
     },
     /// Ask the core's look whether to switch Claude Code by itself at `at`%, from its files
     /// alone: what stands, or that only a decision under its lock can say. It claims nothing.
-    AutoLook { at: u8 },
+    AutoLook {
+        at: u8,
+        strategy: AutoSwitchStrategy,
+    },
     /// Switch Claude Code by itself where a limit of the account in use has reached `at`%
     /// and another account has room: asked once the look says only a decision under the
     /// core's lock can say, which decides whether, and to which, from whose login Claude Code
     /// has stored.
-    AutoSwitch { at: u8 },
+    AutoSwitch {
+        at: u8,
+        strategy: AutoSwitchStrategy,
+    },
     /// Warm up the first account turned on that is due, as the core decides, on a lane of its
     /// own: the core looks at its files first, and a warm-up runs Claude Code for seconds.
     WarmUp,
@@ -1143,6 +1150,9 @@ impl State {
                 }
             }
             Intent::SetAutoSwitch { on, at } => self.auto_switch_set(on, at, jobs),
+            Intent::SetAutoSwitchStrategy { strategy } => {
+                self.auto_switch_strategy_set(strategy, jobs)
+            }
             Intent::SetWarm { qualified, on } => jobs.push(Job::SetWarm { qualified, on }),
             Intent::SetWarmRange { from, to } => jobs.push(Job::SetWarmRange { from, to }),
             Intent::WarmNow { qualified } => {
@@ -1622,6 +1632,17 @@ impl State {
         self.look_to_switch(jobs);
     }
 
+    fn auto_switch_strategy_set(&mut self, strategy: AutoSwitchStrategy, jobs: &mut Vec<Job>) {
+        if !self.preferences_read || self.preferences.auto_switch_strategy == strategy {
+            return;
+        }
+        self.preferences.auto_switch_strategy = strategy;
+        jobs.push(Job::KeepPreferences {
+            preferences: self.preferences.clone(),
+        });
+        self.look_to_switch(jobs);
+    }
+
     /// Asks the core's look whether to switch Claude Code by itself, where somebody turned
     /// that on: after every read, after numbers or a change the poll found, as it is turned
     /// on, and every `decide_every`. The look reads files alone and claims nothing, so it is
@@ -1634,6 +1655,7 @@ impl State {
         self.decide = Timer::Running;
         jobs.push(Job::AutoLook {
             at: self.preferences.threshold().percent(),
+            strategy: self.preferences.auto_switch_strategy,
         });
     }
 
@@ -1691,6 +1713,7 @@ impl State {
         self.switching = Some(AUTOMATICALLY.to_owned());
         jobs.push(Job::AutoSwitch {
             at: self.preferences.threshold().percent(),
+            strategy: self.preferences.auto_switch_strategy,
         });
     }
 

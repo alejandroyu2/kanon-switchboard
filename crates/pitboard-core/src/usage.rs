@@ -336,6 +336,43 @@ pub fn preferred<T>(candidates: impl IntoIterator<Item = (T, Room)>) -> Option<(
     })
 }
 
+/// The account whose fullest limit is least used, with the first account winning ties.
+pub fn balanced<T>(candidates: impl IntoIterator<Item = (T, Room)>) -> Option<(T, Room)> {
+    candidates.into_iter().min_by(|(_, a), (_, b)| {
+        a.fullest
+            .total_cmp(&b.fullest)
+            .then_with(|| a.used.unwrap_or(0.0).total_cmp(&b.used.unwrap_or(0.0)))
+    })
+}
+
+#[cfg(test)]
+mod strategy_tests {
+    use super::*;
+
+    #[test]
+    fn balanced_chooses_the_account_with_the_emptiest_fullest_limit() {
+        let picked = balanced([
+            (
+                "session-light",
+                Room {
+                    used: Some(10.0),
+                    fullest: 80.0,
+                    weekly: false,
+                },
+            ),
+            (
+                "balanced",
+                Room {
+                    used: Some(35.0),
+                    fullest: 40.0,
+                    weekly: true,
+                },
+            ),
+        ]);
+        assert_eq!(picked.map(|(name, _)| name), Some("balanced"));
+    }
+}
+
 /// A share of a limit. Past 100 is real, once a limit is exceeded; below zero is not.
 fn percent(v: &Value) -> Option<f64> {
     let p = v.as_f64()?;

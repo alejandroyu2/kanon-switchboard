@@ -570,11 +570,11 @@ impl Worker {
                 qualified,
                 reopen,
             },
-            Job::AutoLook { at } => Answer::AutoLooked {
-                looked: core.auto_look(at),
+            Job::AutoLook { at, strategy } => Answer::AutoLooked {
+                looked: core.auto_look(at, strategy),
             },
-            Job::AutoSwitch { at } => Answer::AutoSwitched {
-                done: core.auto_switch(at),
+            Job::AutoSwitch { at, strategy } => Answer::AutoSwitched {
+                done: core.auto_switch(at, strategy),
             },
             Job::WarmUp => Answer::WarmedUp {
                 asked: None,
@@ -994,8 +994,22 @@ mod tests {
     /// change, made one at a time with every other.
     #[test]
     fn a_look_whether_to_switch_by_itself_runs_with_the_reads() {
-        assert_eq!(Job::AutoLook { at: 95 }.lane(), Lane::Reads);
-        assert_eq!(Job::AutoSwitch { at: 95 }.lane(), Lane::Changes);
+        assert_eq!(
+            Job::AutoLook {
+                at: 95,
+                strategy: crate::AutoSwitchStrategy::Capacity
+            }
+            .lane(),
+            Lane::Reads
+        );
+        assert_eq!(
+            Job::AutoSwitch {
+                at: 95,
+                strategy: crate::AutoSwitchStrategy::Capacity
+            }
+            .lane(),
+            Lane::Changes
+        );
     }
 
     /// AppModelTests.swift's onlyARunningAppHoldingTheToolIsAskedAbout once more, on the real

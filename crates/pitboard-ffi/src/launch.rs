@@ -10,8 +10,8 @@
 //! failed.
 
 use crate::{
-    Abandoned, Account, FoundCommandLine, Level, Limit, Parked, Schedule, Source, Status, Tool,
-    Usage, Warning, found_command_line, tool,
+    Abandoned, Account, AutoSwitchStrategy, FoundCommandLine, Level, Limit, Parked, Schedule,
+    Source, Status, Tool, Usage, Warning, found_command_line, tool,
 };
 use pitboard_core::app::AppContext;
 use pitboard_core::autoswitch::{Auto, Blind, Look, Skip, Threshold};
@@ -859,23 +859,40 @@ impl AppCore {
     /// Switches Claude Code by itself where a limit of the account in use has reached `at`%
     /// and another account has room, as the core decides under its lock. `at` is taken as the
     /// nearest share there can be.
-    pub(crate) fn auto_switch(&self, at: u8) -> Result<AutoSwitched, PitboardError> {
+    pub(crate) fn auto_switch(
+        &self,
+        at: u8,
+        strategy: AutoSwitchStrategy,
+    ) -> Result<AutoSwitched, PitboardError> {
         let threshold = Threshold::clamped(i64::from(at));
-        changed(self.core().core.auto_switch(threshold), |auto, warnings| {
-            auto_switched(auto, warnings, threshold)
-        })
+        changed(
+            self.core().core.auto_switch(threshold, strategy.into()),
+            |auto, warnings| auto_switched(auto, warnings, threshold),
+        )
     }
 
     /// What switching Claude Code by itself at `at`% would come to, from the core's files
     /// alone: what stands, or that only a decision under its lock can say. Takes no lock,
     /// reads no keychain and asks nobody, so the model asks it after every read and every half
     /// a minute.
-    pub(crate) fn auto_look(&self, at: u8) -> Result<AutoLooked, PitboardError> {
+    pub(crate) fn auto_look(
+        &self,
+        at: u8,
+        strategy: AutoSwitchStrategy,
+    ) -> Result<AutoLooked, PitboardError> {
         let threshold = Threshold::clamped(i64::from(at));
-        Ok(match self.readable()?.core.auto_look(threshold)? {
-            Look::Stands(auto) => AutoLooked::Stands(auto_switched(*auto, Vec::new(), threshold)),
-            Look::Act => AutoLooked::Act,
-        })
+        Ok(
+            match self
+                .readable()?
+                .core
+                .auto_look(threshold, strategy.into())?
+            {
+                Look::Stands(auto) => {
+                    AutoLooked::Stands(auto_switched(*auto, Vec::new(), threshold))
+                }
+                Look::Act => AutoLooked::Act,
+            },
+        )
     }
 
     /// Each Claude Code account, whether Pitboard warms it up and where it stands, and the

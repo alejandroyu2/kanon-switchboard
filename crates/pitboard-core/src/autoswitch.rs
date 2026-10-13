@@ -99,6 +99,16 @@ impl Default for Threshold {
     }
 }
 
+/// How an automatic Claude Code switch chooses among accounts with room.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Strategy {
+    #[default]
+    Capacity,
+    Sequential,
+    Balanced,
+}
+
 /// How long an account put in use is left alone, by anyone's switch: as long as the app
 /// waits between reads of every account, so the account switched to has been asked about
 /// once before anything could switch away from it again. A switch that turned out to land
@@ -368,6 +378,7 @@ pub(crate) fn decide(
     rows: &[Row],
     ledger: &Ledger,
     threshold: Threshold,
+    strategy: Strategy,
     now: i64,
 ) -> Decision {
     let Some((row, reading)) = rows
@@ -458,18 +469,43 @@ pub(crate) fn decide(
                 && !passed_over.contains(&row.id.as_str())
         })
     };
-    let best = usage::preferred(goes().filter_map(|row| {
-        let theirs = answered(row)?;
-        let room = usage::room(
-            &theirs.windows,
-            theirs.lists_every_limit,
-            &reading.windows,
-            limit,
-            threshold.percent(),
-            now,
-        )?;
-        Some((row, room))
-    }));
+    let candidates: Vec<_> = goes()
+        .filter_map(|row| {
+            let theirs = answered(row)?;
+            let room = usage::room(
+                &theirs.windows,
+                theirs.lists_every_limit,
+                &reading.windows,
+                limit,
+                threshold.percent(),
+                now,
+            )?;
+            Some((row, room))
+        })
+        .collect();
+    let best = match strategy {
+        Strategy::Capacity => usage::preferred(candidates),
+        Strategy::Balanced => usage::balanced(candidates),
+        Strategy::Sequential => {
+            let count = state.accounts.len();
+            let from = state
+                .accounts
+                .iter()
+                .position(|account| account.key() == *current)
+                .unwrap_or(0);
+            candidates.into_iter().min_by_key(|(row, _)| {
+                row.key()
+                    .and_then(|key| {
+                        state
+                            .accounts
+                            .iter()
+                            .position(|account| account.key() == key)
+                    })
+                    .map(|position| (position + count - from) % count)
+                    .unwrap_or(usize::MAX)
+            })
+        }
+    };
     match best.and_then(|(row, _)| row.key()) {
         Some(to) => Decision::Switch(Plan {
             from: current.clone(),
@@ -693,7 +729,7 @@ impl Ledger {
 /// that record is in doubt, a switch may be due, a reason not to switch was not yet recorded,
 /// or another run is in the middle of a switch, only the decision under the lock can say,
 /// from whose login is stored by then.
-pub(crate) fn look(ctx: &Context, state: &State, threshold: Threshold) -> Look {
+pub(crate) fn look(ctx: &Context, state: &State, threshold: Threshold, strategy: Strategy) -> Look {
     let unfinished = crate::switch::unfinished(ctx);
     if let Some(why) = blind(ctx, unfinished) {
         return Look::Stands(Box::new(Auto::NotWatching { why }));
@@ -715,7 +751,7 @@ pub(crate) fn look(ctx: &Context, state: &State, threshold: Threshold) -> Look {
         Ok(account) => account,
         Err(why) => return Look::Stands(Box::new(Auto::NotWatching { why })),
     };
-    match judge(ctx, state, account, &ledger, threshold, now) {
+    match judge(ctx, state, account, &ledger, threshold, strategy, now) {
         Judged::Switch(_) => Look::Act,
         Judged::Hold(hold) if ledger.said(&hold) => Look::Stands(Box::new(hold.skipped(state))),
         Judged::Hold(_) => Look::Act,
@@ -768,12 +804,13 @@ pub(crate) fn judge(
     account: &Account,
     ledger: &Ledger,
     threshold: Threshold,
+    strategy: Strategy,
     now: i64,
 ) -> Judged {
     let rows = crate::status::gather_offline(ctx, state).rows;
     let key = account.key();
     let typed = state.typed(&key);
-    let plan = match decide(state, &key, &rows, ledger, threshold, now) {
+    let plan = match decide(state, &key, &rows, ledger, threshold, strategy, now) {
         Decision::Below { nearest, as_of } => {
             return Judged::Stands(Auto::Watching {
                 account: typed,
@@ -877,7 +914,15 @@ mod tests {
             .find(|row| row.signed_in)
             .and_then(Row::key)
             .expect("an account in use");
-        decide(state, &current, rows, ledger, threshold, now)
+        decide(
+            state,
+            &current,
+            rows,
+            ledger,
+            threshold,
+            Strategy::Capacity,
+            now,
+        )
     }
 
     fn decided(rows: &[Row]) -> Decision {
@@ -888,6 +933,52 @@ mod tests {
             Threshold::DEFAULT,
             NOW,
         )
+    }
+
+    fn decided_as(rows: &[Row], strategy: Strategy) -> Decision {
+        let state = state_of(rows);
+        let current = rows
+            .iter()
+            .find(|row| row.signed_in)
+            .and_then(Row::key)
+            .unwrap();
+        decide(
+            &state,
+            &current,
+            rows,
+            &Ledger::default(),
+            Threshold::DEFAULT,
+            strategy,
+            NOW,
+        )
+    }
+
+    #[test]
+    fn sequential_uses_the_next_enrolled_account() {
+        let rows = [work_at(96.0), other(), spare()];
+        assert_eq!(to(&decided_as(&rows, Strategy::Sequential)), Some("other"));
+    }
+
+    #[test]
+    fn balanced_uses_the_account_with_the_emptiest_fullest_limit() {
+        let work = work_at(96.0);
+        let session_light = row(
+            "session-light",
+            false,
+            vec![window("session", 10.0), window("weekly_all", 80.0)],
+        );
+        let balanced = row(
+            "balanced",
+            false,
+            vec![window("session", 35.0), window("weekly_all", 40.0)],
+        );
+        assert_eq!(
+            to(&decided_as(
+                &[work, session_light, balanced],
+                Strategy::Balanced
+            )),
+            Some("balanced")
+        );
     }
 
     /// `work` was put in use at `at`.
@@ -1090,6 +1181,7 @@ mod tests {
             &rows,
             &Ledger::default(),
             Threshold::DEFAULT,
+            Strategy::Capacity,
             NOW,
         );
         assert!(matches!(decision, Decision::Below { .. }), "{decision:?}");

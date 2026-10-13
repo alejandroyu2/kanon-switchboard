@@ -11,7 +11,7 @@
 use super::{Seen, words};
 use crate::model::machine::ScheduleFailure;
 use crate::model::state::AutoStanding;
-use crate::{AutoSwitched, FoundCommandLine, Level, Schedule};
+use crate::{AutoSwitchStrategy, AutoSwitched, FoundCommandLine, Level, Schedule};
 use pitboard_core::autoswitch::Threshold;
 
 /// What the app shows of this machine rather than its accounts. Not called `Machine`, the
@@ -79,6 +79,8 @@ pub struct AutoSwitchShown {
     /// The share of a limit it switches at, a whole percentage, which `Intent::SetAutoSwitch`
     /// takes back.
     pub at: u8,
+    /// How the next account is chosen.
+    pub strategy: AutoSwitchStrategy,
     /// The lowest and highest shares there can be, for the control that picks one.
     pub lowest: u8,
     pub highest: u8,
@@ -334,6 +336,7 @@ fn auto_switch(seen: &Seen) -> AutoSwitchShown {
     AutoSwitchShown {
         on: state.preferences.auto_switch,
         at,
+        strategy: state.preferences.auto_switch_strategy,
         lowest: Threshold::LOWEST,
         highest: Threshold::HIGHEST,
         enabled: state.preferences_have_been_read(),

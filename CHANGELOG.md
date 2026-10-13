@@ -6,6 +6,10 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Automatic Claude Code switching can fill accounts sequentially or balance their usage.
+
 ## [0.13.0] - 2026-10-13
 
 ### Added

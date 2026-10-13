@@ -776,13 +776,13 @@ impl Machine {
                     done: self.switched.clone().map_err(|refused| refused.error()),
                 }
             }
-            Job::AutoLook { at } => {
+            Job::AutoLook { at, .. } => {
                 self.looked_at.push(at);
                 Answer::AutoLooked {
                     looked: self.look.clone().map_err(|refused| refused.error()),
                 }
             }
-            Job::AutoSwitch { at } => {
+            Job::AutoSwitch { at, .. } => {
                 self.auto_at.push(at);
                 Answer::AutoSwitched {
                     done: self.auto.clone().map_err(|refused| refused.error()),
