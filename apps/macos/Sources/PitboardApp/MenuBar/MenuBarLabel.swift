@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import PitboardKit
 import SwiftUI
 
@@ -19,6 +20,8 @@ struct MenuBarLabel: View {
     @AppStorage("worldClocks.mexicoCity") private var mexicoCity = true
     @AppStorage("worldClocks.saoPaulo") private var saoPaulo = true
     @AppStorage("worldClocks.newYork") private var newYork = true
+    @State private var clockDate = Date()
+    private let clockTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     var body: some View {
         let title = shows.text(of: model.menuBar)
@@ -30,15 +33,16 @@ struct MenuBarLabel: View {
             if !title.isEmpty {
                 Text(title).monospacedDigit()
             }
-            TimelineView(.everyMinute) { context in
+            Group {
                 let enabled = [buenosAires, mexicoCity, saoPaulo, newYork]
                 let clocks = WorldClock.cities.enumerated().filter { enabled[$0.offset] }
-                    .map { "\($0.element.flag) \($0.element.time(at: context.date))" }
+                    .map { "\($0.element.flag) \($0.element.time(at: clockDate))" }
                 if !clocks.isEmpty {
                     Text(clocks.joined(separator: "  ")).monospacedDigit()
                 }
             }
         }
+        .onReceive(clockTimer) { clockDate = $0 }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(model.menuBar.spoken + ", " + WorldClock.cities.enumerated()
             .filter { [buenosAires, mexicoCity, saoPaulo, newYork][$0.offset] }
