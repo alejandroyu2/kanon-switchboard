@@ -15,6 +15,10 @@ struct MenuBarLabel: View {
     let requests: WindowRequests
     @Environment(\.openWindow) private var openWindow
     @AppStorage(DefaultsKey.menuBarShows) private var shows = MenuBarShows.nameAndUsage
+    @AppStorage("worldClocks.buenosAires") private var buenosAires = true
+    @AppStorage("worldClocks.mexicoCity") private var mexicoCity = true
+    @AppStorage("worldClocks.saoPaulo") private var saoPaulo = true
+    @AppStorage("worldClocks.newYork") private var newYork = true
 
     var body: some View {
         let title = shows.text(of: model.menuBar)
@@ -26,9 +30,19 @@ struct MenuBarLabel: View {
             if !title.isEmpty {
                 Text(title).monospacedDigit()
             }
+            TimelineView(.everyMinute) { context in
+                let enabled = [buenosAires, mexicoCity, saoPaulo, newYork]
+                let clocks = WorldClock.cities.enumerated().filter { enabled[$0.offset] }
+                    .map { "\($0.element.flag) \($0.element.time(at: context.date))" }
+                if !clocks.isEmpty {
+                    Text(clocks.joined(separator: "  ")).monospacedDigit()
+                }
+            }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(model.menuBar.spoken)
+        .accessibilityLabel(model.menuBar.spoken + ", " + WorldClock.cities.enumerated()
+            .filter { [buenosAires, mexicoCity, saoPaulo, newYork][$0.offset] }
+            .map { "\($0.element.city) \($0.element.time(at: .now))" }.joined(separator: ", "))
         // As it first appears too: the first launch's request can be in before it is drawn.
         .onChange(of: model.windowRequest.serial, initial: true) {
             guard requests.opens(model.windowRequest) else { return }

@@ -8,6 +8,8 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Choose which city clocks appear directly in the menu bar from General settings.
+
 - Show flagged world clocks for Buenos Aires, Mexico City, São Paulo and New York in the menu.
 
 - Automatic Claude Code switching can fill accounts sequentially or balance their usage.

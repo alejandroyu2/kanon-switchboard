@@ -17,7 +17,6 @@ struct MenuBarContent: View {
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
-        WorldClocks()
         attention
         accounts
         Section {

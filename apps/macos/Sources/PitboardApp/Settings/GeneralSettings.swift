@@ -4,6 +4,10 @@ import SwiftUI
 struct GeneralSettings: View {
     let openAtLogin: OpenAtLogin
     @AppStorage(DefaultsKey.menuBarShows) private var shows = MenuBarShows.nameAndUsage
+    @AppStorage("worldClocks.buenosAires") private var buenosAires = true
+    @AppStorage("worldClocks.mexicoCity") private var mexicoCity = true
+    @AppStorage("worldClocks.saoPaulo") private var saoPaulo = true
+    @AppStorage("worldClocks.newYork") private var newYork = true
 
     var body: some View {
         Form {
@@ -33,6 +37,12 @@ struct GeneralSettings: View {
                         Text(option.title).tag(option)
                     }
                 }
+            }
+            Section("World clocks in menu bar") {
+                Toggle("🇦🇷 Buenos Aires", isOn: $buenosAires)
+                Toggle("🇲🇽 CDMX", isOn: $mexicoCity)
+                Toggle("🇧🇷 São Paulo", isOn: $saoPaulo)
+                Toggle("🇺🇸 Nueva York", isOn: $newYork)
             }
         }
         .formStyle(.grouped)

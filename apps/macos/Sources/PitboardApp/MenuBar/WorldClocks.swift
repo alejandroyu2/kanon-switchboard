@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 
 struct WorldClock: Identifiable {
     let city: String
@@ -23,16 +22,3 @@ struct WorldClock: Identifiable {
     }
 }
 
-struct WorldClocks: View {
-    var body: some View {
-        TimelineView(.everyMinute) { context in
-            Section("World clocks") {
-                ForEach(WorldClock.cities) { clock in
-                    Text("\(clock.flag) \(clock.city)   \(clock.time(at: context.date))")
-                        .monospacedDigit()
-                        .accessibilityIdentifier("clock.\(clock.zone)")
-                }
-            }
-        }
-    }
-}
