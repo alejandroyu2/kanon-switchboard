@@ -157,7 +157,7 @@ impl Os {
     pub fn app_command_line(self, app: &Path) -> Option<PathBuf> {
         match self {
             Os::MacOs => (app.extension() == Some("app".as_ref()))
-                .then(|| app.join("Contents/Helpers/pitboard")),
+                .then(|| app.join("Contents/Helpers/kanon-switch")),
             Os::Linux | Os::Windows => None,
         }
     }

@@ -17,8 +17,8 @@ version = "0.13.0"
 edition = "2024"
 rust-version = "1.91"
 license = "Apache-2.0"
-repository = "https://github.com/datlechin/pitboard"
-homepage = "https://usepitboard.com"
+repository = "https://github.com/alejandroyu2/kanon-switchboard"
+homepage = "https://github.com/alejandroyu2/kanon-switchboard"
 
 [workspace.dependencies]
 pitboard-core = { path = "crates/pitboard-core", version = "=0.13.0" }

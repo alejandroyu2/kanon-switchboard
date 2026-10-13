@@ -30,7 +30,7 @@ struct CommandLineTool: Sendable {
     /// This app's, as the core says where the command line inside an app is.
     init(
         bundle: URL = Bundle.main.bundleURL,
-        link: String = "/usr/local/bin/pitboard",
+        link: String = "/usr/local/bin/kanon-switch",
         execute: @escaping Runner = CommandLineTool.execute(script:)
     ) {
         self.init(helper: appCommandLine(app: bundle.path), link: link, execute: execute)

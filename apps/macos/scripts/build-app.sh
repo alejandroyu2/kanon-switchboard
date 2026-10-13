@@ -19,7 +19,7 @@ identity=${SIGN_IDENTITY:--}
 # GitHub serves the newest release's assets at a fixed address, so the feed has one even
 # before the site does.
 FEED=https://github.com/datlechin/pitboard/releases/latest/download/appcast.xml
-app=apps/macos/build/Pitboard.app
+app="apps/macos/build/Kanon Switchboard.app"
 # Sparkle decides what is newer by CFBundleVersion, so it counts up with the version
 # rather than staying at whatever the project says.
 rest=${version#*.}
@@ -66,6 +66,8 @@ xcodebuild -project apps/macos/Pitboard.xcodeproj -scheme Pitboard -configuratio
     MARKETING_VERSION="$version" CURRENT_PROJECT_VERSION="$build" \
     CODE_SIGNING_ALLOWED=NO build
 ditto apps/macos/build/DerivedData/Build/Products/Release/Pitboard.app "$app"
+mv "$app/Contents/MacOS/Pitboard" "$app/Contents/MacOS/KanonSwitchboard"
+/usr/libexec/PlistBuddy -c "Set :CFBundleExecutable KanonSwitchboard" "$app/Contents/Info.plist"
 [ -d "$app/Contents/Frameworks/Sparkle.framework" ] || {
     echo "Xcode did not embed Sparkle.framework" >&2
     exit 1
@@ -73,20 +75,24 @@ ditto apps/macos/build/DerivedData/Build/Products/Release/Pitboard.app "$app"
 # The Share extension, which hands a page's claude.ai or chatgpt.com link to the app, built
 # for both kinds of Mac like the app. The release claims pitboard://, which the extension
 # opens, and both read it from PitboardURLScheme; a debug build claims pitboard-debug://.
-appex=$app/Contents/PlugIns/PitboardShare.appex
+original_appex=$app/Contents/PlugIns/PitboardShare.appex
+appex=$app/Contents/PlugIns/KanonSwitchboardShare.appex
+[ -d "$original_appex" ] && mv "$original_appex" "$appex"
 [ -d "$appex" ] || {
     echo "Xcode did not embed PitboardShare.appex" >&2
     exit 1
 }
+mv "$appex/Contents/MacOS/PitboardShare" "$appex/Contents/MacOS/KanonSwitchboardShare"
+/usr/libexec/PlistBuddy -c "Set :CFBundleExecutable KanonSwitchboardShare" "$appex/Contents/Info.plist"
 for arch in arm64 x86_64; do
-    lipo "$appex/Contents/MacOS/PitboardShare" -verify_arch "$arch"
+    lipo "$appex/Contents/MacOS/KanonSwitchboardShare" -verify_arch "$arch"
 done
 for scheme in \
     "$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$app/Contents/Info.plist")" \
     "$(plutil -extract PitboardURLScheme raw "$app/Contents/Info.plist")" \
     "$(plutil -extract PitboardURLScheme raw "$appex/Contents/Info.plist")"; do
-    [ "$scheme" = pitboard ] || {
-        echo "the app or its extension names $scheme://, not pitboard://" >&2
+    [ "$scheme" = kanon-switchboard ] || {
+        echo "the app or its extension names $scheme://, not kanon-switchboard://" >&2
         exit 1
     }
 done
@@ -102,7 +108,6 @@ lipo -create target/aarch64-apple-darwin/release/pitboard \
 # Helpers, which is where a bundle keeps a tool that is not its main program. In MacOS it
 # would be the same file as Pitboard on a case-insensitive volume, and overwrite it.
 mkdir -p "$app/Contents/Helpers"
-cp "$cli" "$app/Contents/Helpers/pitboard"
 cp "$cli" "$app/Contents/Helpers/kanon-switch"
 
 # Xcode compiles AppIcon.icon into Assets.car for macOS 26 and later, and into AppIcon.icns
@@ -119,12 +124,9 @@ cp "$app/Contents/Resources/AppIcon.icns" "$appex/Contents/Resources/AppIcon.icn
 # covers its Resources. It runs from where lipo left it: macOS scans a bundle the first
 # time a program inside it runs, and a write into the bundle during the scan fails.
 mkdir -p "$app/Contents/Resources/man" "$app/Contents/Resources/completions"
-"$cli" manpage > "$app/Contents/Resources/man/pitboard.1"
-cp "$app/Contents/Resources/man/pitboard.1" "$app/Contents/Resources/man/kanon-switch.1"
+"$cli" manpage > "$app/Contents/Resources/man/kanon-switch.1"
 for shell in bash zsh fish; do
-    "$cli" completions "$shell" > "$app/Contents/Resources/completions/pitboard.$shell"
-    cp "$app/Contents/Resources/completions/pitboard.$shell" \
-        "$app/Contents/Resources/completions/kanon-switch.$shell"
+    "$cli" completions "$shell" > "$app/Contents/Resources/completions/kanon-switch.$shell"
 done
 
 if [ -n "${SPARKLE_PUBLIC_KEY:-}" ]; then
@@ -148,9 +150,7 @@ fi
 # settled first. A bare executable has no Info.plist to take an identifier from, so the
 # command line is given one under the app's.
 # shellcheck disable=SC2086 # $options is a list of flags.
-codesign --force $options --sign "$identity" -i com.usepitboard.Pitboard.cli \
-    "$app/Contents/Helpers/pitboard"
-codesign --force $options --sign "$identity" -i com.usepitboard.Pitboard.cli \
+codesign --force $options --sign "$identity" -i com.kanon.Switchboard.cli \
     "$app/Contents/Helpers/kanon-switch"
 for helper in "$app/Contents/Frameworks/Sparkle.framework/Versions/"*/XPCServices/*.xpc \
     "$app/Contents/Frameworks/Sparkle.framework/Versions/"*/Updater.app \
@@ -181,8 +181,8 @@ sandboxed=$(codesign -d --entitlements - --xml "$appex" 2>/dev/null |
 links() {
     nm -a "$1" | grep -q "$2"
 }
-extension_binary=$appex/Contents/MacOS/PitboardShare
-app_binary=$app/Contents/MacOS/Pitboard
+extension_binary=$appex/Contents/MacOS/KanonSwitchboardShare
+app_binary=$app/Contents/MacOS/KanonSwitchboard
 links "$extension_binary" uniffi_pitboard_share_ffi_ || {
     echo "the share extension does not link pitboard-share-ffi" >&2
     exit 1
@@ -206,4 +206,4 @@ fi
 # shellcheck disable=SC2086
 codesign --force $options --sign "$identity" "$app"
 codesign --verify --strict --deep "$app"
-echo "built $app ($version, $(lipo -archs "$app/Contents/MacOS/Pitboard"))"
+echo "built $app ($version, $(lipo -archs "$app/Contents/MacOS/KanonSwitchboard"))"

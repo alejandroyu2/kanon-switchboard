@@ -10,6 +10,7 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Automatic Claude Code switching can fill accounts sequentially or balance their usage.
 - The fork is branded **Kanon Switchboard**, with `kanon-switch` as its command-line name.
+- Remove the former app and command names from installed artifacts.
 
 ## [0.13.0] - 2026-10-13
 

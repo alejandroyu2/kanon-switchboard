@@ -554,7 +554,9 @@ mod tests {
             .map(Path::to_path_buf)
         };
         let inside = |app: &str| match OS {
-            Os::MacOs => Some(PathBuf::from(format!("{app}/Contents/Helpers/pitboard"))),
+            Os::MacOs => Some(PathBuf::from(format!(
+                "{app}/Contents/Helpers/kanon-switch"
+            ))),
             // No app runs on Linux, and the Windows app does not say where its own is yet.
             Os::Linux | Os::Windows => None,
         };
