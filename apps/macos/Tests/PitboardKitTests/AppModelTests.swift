@@ -64,7 +64,7 @@ private func snapshot(
                 found: nil, inTerminal: nil, updateNote: nil, offersLink: false,
                 cannotLink: nil),
             autoSwitch: AutoSwitchShown(
-                on: false, at: 95, lowest: 50, highest: 99, enabled: true,
+                on: false, at: 95, strategy: .capacity, lowest: 50, highest: 99, enabled: true,
                 atLabel: "Switch when a limit reaches 95%", note: "", standing: nil),
             warm: WarmShown(
                 from: 360, to: 1320, rangeLabel: "06:00 to 22:00", accounts: [], standing: nil,

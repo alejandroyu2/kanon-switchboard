@@ -8,6 +8,8 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Show flagged world clocks for Buenos Aires, Mexico City, São Paulo and New York in the menu.
+
 - Automatic Claude Code switching can fill accounts sequentially or balance their usage.
 - The fork is branded **Kanon Switchboard**, with `kanon-switch` as its command-line name.
 - Remove the former app and command names from installed artifacts.

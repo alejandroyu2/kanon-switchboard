@@ -17,6 +17,7 @@ struct MenuBarContent: View {
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
+        WorldClocks()
         attention
         accounts
         Section {
@@ -37,7 +38,7 @@ struct MenuBarContent: View {
             }
         }
         Section {
-            Button("Open Pitboard") { model.send(.showWindow(pane: nil)) }
+            Button("Open Kanon Switchboard") { model.send(.showWindow(pane: nil)) }
                 .keyboardShortcut("0")
             Button("Settings…") {
                 // Choosing an item of a menu bar item's menu does not make the app active,
@@ -55,8 +56,8 @@ struct MenuBarContent: View {
                 NSApp.activate()
                 NSApp.orderFrontStandardAboutPanel(nil)
             }
-            Link("Pitboard Help", destination: Links.documentation)
-            Button("Quit Pitboard") { NSApp.terminate(nil) }
+            Link("Kanon Switchboard Help", destination: Links.documentation)
+            Button("Quit Kanon Switchboard") { NSApp.terminate(nil) }
                 .keyboardShortcut("q")
         }
     }
@@ -104,7 +105,7 @@ struct MenuBarContent: View {
                         updates.check()
                     } label: {
                         Image(systemName: Symbol.update)
-                        Text("Install Pitboard \(waiting)…")
+                        Text("Install Kanon Switchboard \(waiting)…")
                     }
                 }
             }
