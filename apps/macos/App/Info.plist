@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleName</key>
-	<string>Pitboard</string>
+	<string>Kanon Switchboard</string>
 	<key>CFBundleDisplayName</key>
-	<string>Pitboard</string>
+	<string>Kanon Switchboard</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<!-- AppIcon.icon, or AppIcon-Debug.icon in a debug build, made in Icon Composer. -->

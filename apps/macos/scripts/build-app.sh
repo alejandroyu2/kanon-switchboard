@@ -103,6 +103,7 @@ lipo -create target/aarch64-apple-darwin/release/pitboard \
 # would be the same file as Pitboard on a case-insensitive volume, and overwrite it.
 mkdir -p "$app/Contents/Helpers"
 cp "$cli" "$app/Contents/Helpers/pitboard"
+cp "$cli" "$app/Contents/Helpers/kanon-switch"
 
 # Xcode compiles AppIcon.icon into Assets.car for macOS 26 and later, and into AppIcon.icns
 # for earlier systems. The Share menu shows the extension's own icon, which is the app's.
@@ -119,8 +120,11 @@ cp "$app/Contents/Resources/AppIcon.icns" "$appex/Contents/Resources/AppIcon.icn
 # time a program inside it runs, and a write into the bundle during the scan fails.
 mkdir -p "$app/Contents/Resources/man" "$app/Contents/Resources/completions"
 "$cli" manpage > "$app/Contents/Resources/man/pitboard.1"
+cp "$app/Contents/Resources/man/pitboard.1" "$app/Contents/Resources/man/kanon-switch.1"
 for shell in bash zsh fish; do
     "$cli" completions "$shell" > "$app/Contents/Resources/completions/pitboard.$shell"
+    cp "$app/Contents/Resources/completions/pitboard.$shell" \
+        "$app/Contents/Resources/completions/kanon-switch.$shell"
 done
 
 if [ -n "${SPARKLE_PUBLIC_KEY:-}" ]; then
@@ -146,6 +150,8 @@ fi
 # shellcheck disable=SC2086 # $options is a list of flags.
 codesign --force $options --sign "$identity" -i com.usepitboard.Pitboard.cli \
     "$app/Contents/Helpers/pitboard"
+codesign --force $options --sign "$identity" -i com.usepitboard.Pitboard.cli \
+    "$app/Contents/Helpers/kanon-switch"
 for helper in "$app/Contents/Frameworks/Sparkle.framework/Versions/"*/XPCServices/*.xpc \
     "$app/Contents/Frameworks/Sparkle.framework/Versions/"*/Updater.app \
     "$app/Contents/Frameworks/Sparkle.framework/Versions/"*/Autoupdate; do

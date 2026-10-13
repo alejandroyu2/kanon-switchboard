@@ -47,6 +47,6 @@ struct UpdatesSettings: View {
     private var version: String {
         let info = Bundle.main.infoDictionary
         let short = info?["CFBundleShortVersionString"] as? String ?? ""
-        return short.isEmpty ? "Pitboard" : "Pitboard \(short)"
+        return short.isEmpty ? "Kanon Switchboard" : "Kanon Switchboard \(short)"
     }
 }

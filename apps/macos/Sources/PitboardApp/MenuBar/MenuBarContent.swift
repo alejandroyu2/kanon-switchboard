@@ -51,7 +51,7 @@ struct MenuBarContent: View {
             }
         }
         Section {
-            Button("About Pitboard") {
+            Button("About Kanon Switchboard") {
                 NSApp.activate()
                 NSApp.orderFrontStandardAboutPanel(nil)
             }

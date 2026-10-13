@@ -35,7 +35,7 @@ public struct PitboardScenes: Scene {
         }
         .menuBarExtraStyle(.menu)
 
-        Window("Pitboard", id: MainWindow.id) {
+        Window("Kanon Switchboard", id: MainWindow.id) {
             MainWindow(model: model, windows: windows, requests: requests)
                 .defaultAppStorage(defaults)
         }

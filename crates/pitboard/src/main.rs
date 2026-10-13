@@ -29,7 +29,7 @@ const WARNING: Style = AnsiColor::Yellow.on_default().bold();
 
 /// Park and restore your own logins of Claude Code and Codex, and see what each one has left.
 #[derive(Parser)]
-#[command(name = "pitboard", version)]
+#[command(name = "kanon-switch", version)]
 struct Cli {
     /// Machine-readable output: the same versioned JSON envelope for every command,
     /// whether it succeeds or fails
@@ -1189,6 +1189,11 @@ mod tests {
     }
 
     #[test]
+    fn the_command_line_uses_kanons_name() {
+        assert_eq!(Cli::command().get_name(), "kanon-switch");
+    }
+
+    #[test]
     fn a_mistyped_flag_is_rejected_rather_than_ignored() {
         assert!(Cli::try_parse_from(["pitboard", "--jsno", "status"]).is_err());
         assert!(Cli::try_parse_from(["pitboard", "status", "--verbose"]).is_err());
@@ -1440,7 +1445,7 @@ mod tests {
             (Shell::Fish, "-l scheduled", true),
         ] {
             let mut out = Vec::new();
-            clap_complete::generate(shell, &mut Cli::command(), "pitboard", &mut out);
+            clap_complete::generate(shell, &mut Cli::command(), "kanon-switch", &mut out);
             let file = String::from_utf8(out).expect("text");
             let line = file
                 .lines()
@@ -1583,24 +1588,24 @@ mod tests {
             "a reference to another page:\n{page}"
         );
         for typed in [
-            "pitboard status",
-            "pitboard enroll",
-            "pitboard use",
-            "pitboard forget",
-            "pitboard stow",
-            "pitboard abandon",
-            "pitboard repair",
-            "pitboard adopt",
-            "pitboard renew",
-            "pitboard schedule install",
-            "pitboard schedule status",
-            "pitboard schedule uninstall",
-            "pitboard log",
-            "pitboard uninstall",
-            "pitboard rename",
-            "pitboard doctor",
-            "pitboard statusline",
-            "pitboard completions",
+            "kanon\\-switch status",
+            "kanon\\-switch enroll",
+            "kanon\\-switch use",
+            "kanon\\-switch forget",
+            "kanon\\-switch stow",
+            "kanon\\-switch abandon",
+            "kanon\\-switch repair",
+            "kanon\\-switch adopt",
+            "kanon\\-switch renew",
+            "kanon\\-switch schedule install",
+            "kanon\\-switch schedule status",
+            "kanon\\-switch schedule uninstall",
+            "kanon\\-switch log",
+            "kanon\\-switch uninstall",
+            "kanon\\-switch rename",
+            "kanon\\-switch doctor",
+            "kanon\\-switch statusline",
+            "kanon\\-switch completions",
         ] {
             assert!(
                 page.contains(&format!("\\fB{typed}\\fR")),
